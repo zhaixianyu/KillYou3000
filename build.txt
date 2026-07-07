@@ -1,0 +1,6 @@
+displayName = 要你命3000
+author = zhaixianyu
+version = 0.1.1
+hideCode = false
+hideResources = false
+includeSource = true

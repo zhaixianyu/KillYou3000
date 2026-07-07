@@ -1,0 +1,81 @@
+Mods: {
+	KillYou3000: {
+		Items: {
+			LifePercentAccessory: {
+				Tooltip: ""
+				DisplayName: Life Percent Accessory
+			}
+
+			ProgressiveFishingRod: {
+				DisplayName: Progressive Fishing Rod
+				Tooltip: ""
+			}
+		}
+
+		DamageClasses.LifePercentDamage.DisplayName: Life Percent Damage
+
+		Keybinds: {
+			ItemInteractions.DisplayName: Item Interactions
+			ItemInteractions2.DisplayName: Item Interactions2
+		}
+
+		Configs: {
+			LifePercentConfig: {
+				DisplayName: Life Percent Config
+
+				Headers: {
+					伤害设置: 伤害设置 Header
+					恢复设置: 恢复设置 Header
+					其他设置: 其他设置 Header
+				}
+
+				DamagePercentage: {
+					Label: 伤害百分比
+					Tooltip: 每击杀一个敌人增加的伤害百分比
+				}
+
+				RevertPercentage: {
+					Label: 恢复百分比
+					Tooltip: 每次恢复的生命百分比
+				}
+
+				MaxKillCount: {
+					Label: 最大击杀数
+					Tooltip: 达到此击杀数后停止计数
+				}
+			}
+
+			MyModConfig: {
+				DisplayName: My Mod Config
+
+				PullingDelay: {
+					Label: Pulling Delay
+					Tooltip: ""
+				}
+			}
+
+			ClientConfig: {
+				DisplayName: Client Config
+
+				PullingDelay: {
+					Label: Pulling Delay
+					Tooltip: ""
+				}
+			}
+
+			ServerConfig: {
+				DisplayName: Server Config
+
+				MaximumNumberOfFishingLines: {
+					Label: Maximum Number Of Fishing Lines
+					Tooltip: ""
+				}
+
+				MaximumFishingCapacity: {
+					Label: Maximum Fishing Capacity
+					Tooltip: ""
+				}
+			}
+		}
+	}
+}

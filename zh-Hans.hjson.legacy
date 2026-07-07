@@ -1,0 +1,12 @@
+Mods: {
+	KillYou3000: {
+		// DamageClasses.LifePercentDamage.DisplayName: Life Percent Damage
+
+		Items: {
+			LifePercentAccessory: {
+				DisplayName: 生命割裂者!
+				Tooltip: 攻击附带目标最大生命值1%真实伤害
+			}
+		}
+	}
+}

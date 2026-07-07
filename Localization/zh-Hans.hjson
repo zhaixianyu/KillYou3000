@@ -1,0 +1,101 @@
+Mods: {
+	KillYou3000: {
+		Items: {
+			LifePercentAccessory: {
+				Tooltip:
+					'''
+					[c/55FF55:你至多受到1000伤害]
+					[c/55FF55:你被秒杀改为扣除1000生命值]
+					每1000最大生命值加成 增加1仆从栏
+					[c/FF5555:攻击附带目标{n0}%最大生命值真实伤害，BOSS降低至{n1}%]
+					[c/55FF55:每次攻击命中回复你{n2}%已损失生命值]
+					每击杀{n3}次敌人，增加1%(至少为1点)最大生命值
+					[c/AAAAFF:击杀进度]: {0}/{n3}
+					[c/55FF55:生命加成]: +{1}
+					已{2}最大生命值加成成长
+					按下{3}可切换最大生命值成长状态
+					'''
+				DisplayName: 噬命魔符
+			}
+
+			ProgressiveFishingRod: {
+				DisplayName: 30年钓河东30年钓河西究极永恒不灭创世重生与诸神黄昏末日审判交织之混沌吞噬者量子纠缠命运编织者之钓鱼竿
+				Tooltip:
+					'''
+					不会消耗鱼饵
+					可以熔岩钓鱼
+					根据boss图鉴解锁进度增加渔力和鱼线数量
+					已增加渔力: {0} 
+					已增加鱼线: {1} 
+					可以自动钓鱼
+					'''
+			}
+		}
+
+		// DamageClasses.LifePercentDamage.DisplayName: Life Percent Damage
+
+		Keybinds: {
+			ItemInteractions.DisplayName: 物品交互
+			// ItemInteractions2.DisplayName: Item Interactions2
+		}
+
+		Configs: {
+			LifePercentConfig: {
+				// DisplayName: Life Percent Config
+
+				Headers: {
+					// 伤害设置: 伤害设置 Header
+					// 恢复设置: 恢复设置 Header
+					// 其他设置: 其他设置 Header
+				}
+
+				DamagePercentage: {
+					// Label: 伤害百分比
+					// Tooltip: 每击杀一个敌人增加的伤害百分比
+				}
+
+				RevertPercentage: {
+					// Label: 恢复百分比
+					// Tooltip: 每次恢复的生命百分比
+				}
+
+				MaxKillCount: {
+					// Label: 最大击杀数
+					// Tooltip: 达到此击杀数后停止计数
+				}
+			}
+
+			MyModConfig: {
+				// DisplayName: My Mod Config
+
+				PullingDelay: {
+					// Label: Pulling Delay
+					// Tooltip: ""
+				}
+			}
+
+			ClientConfig: {
+				// DisplayName: Client Config
+
+				PullingDelay: {
+					Label: 收杆延迟
+					Tooltip: -1时禁用自动钓鱼
+				}
+			}
+
+			ServerConfig: {
+				// DisplayName: Server Config
+
+				MaximumNumberOfFishingLines: {
+					Label: 最大鱼线数量
+					// Tooltip: ""
+				}
+
+				MaximumFishingCapacity: {
+					Label: 最大渔力
+					// Tooltip: ""
+				}
+			}
+		}
+	}
+}

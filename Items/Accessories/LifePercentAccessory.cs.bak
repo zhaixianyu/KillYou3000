@@ -1,0 +1,30 @@
+using Terraria;
+using Terraria.ID;
+using Terraria.ModLoader;
+
+namespace YourModName.Items.Accessories
+{
+    public class LifePercentAccessory : ModItem
+    {
+        public override void SetStaticDefaults()
+        {
+            DisplayName.SetDefault("生命割裂者");
+            Tooltip.SetDefault("攻击附带目标1%最大生命值的真实伤害\n\"撕裂敌人的生命本质\"");
+        }
+
+        public override void SetDefaults()
+        {
+            Item.width = 28;
+            Item.height = 28;
+            Item.accessory = true;
+            Item.rare = ItemRarityID.Purple;
+            Item.value = Item.sellPrice(0, 10, 0, 0);
+        }
+
+        public override void UpdateAccessory(Player player, bool hideVisual)
+        {
+            // 添加自定义效果标记
+            player.GetModPlayer<LifePercentPlayer>().hasAccessory = true;
+        }
+    }
+}
