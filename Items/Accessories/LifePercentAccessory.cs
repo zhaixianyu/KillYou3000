@@ -5,7 +5,6 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Terraria;
 using Terraria.Audio;
-using Terraria.DataStructures;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
@@ -90,7 +89,7 @@ namespace KillYou3000.Items.Accessories
                 lighting = !lighting;
                 return;
             }
-            
+
             isStateActive = !isStateActive;
         }
 
@@ -307,7 +306,7 @@ namespace KillYou3000.Items.Accessories
             //         Console.WriteLine(key);
             // }
             //
-            
+
             // 处理小数点
             if (Main.keyState.IsKeyDown(Keys.OemPeriod) && !Main.oldKeyState.IsKeyDown(Keys.OemPeriod)) {
                 SetText(Text + ".");

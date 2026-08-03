@@ -30,6 +30,21 @@ Mods: {
 					可以自动钓鱼
 					'''
 			}
+
+			Empress: {
+				DisplayName: 汲灵棱镜
+				Tooltip: ""
+			}
+
+			BlinkBlade: {
+				DisplayName: 湮灭棱刃
+				Tooltip:
+					'''
+					[c/FFD700:召唤湮灭棱刃为你战斗]
+					棱刃环绕玩家飞行，每0.67秒传送至目标位置造成范围爆炸伤害
+					目标死亡时立即锁定新目标发动攻击
+					'''
+			}
 		}
 
 		// DamageClasses.LifePercentDamage.DisplayName: Life Percent Damage
@@ -97,5 +112,14 @@ Mods: {
 				}
 			}
 		}
+
+		Buffs: {
+			BlinkBladeBuff: {
+				DisplayName: 湮灭棱刃
+				// Description: Mods.KillYou3000.Buffs.BlinkBladeBuff.Description
+			}
+		}
+
+		Projectiles.BlinkBladeMinion.DisplayName: 湮灭棱刃
 	}
 }

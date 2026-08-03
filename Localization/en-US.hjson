@@ -10,6 +10,16 @@ Mods: {
 				DisplayName: Progressive Fishing Rod
 				Tooltip: ""
 			}
+
+			Empress: {
+				DisplayName: Empress
+				Tooltip: ""
+			}
+
+			BlinkBlade: {
+				DisplayName: Blink Blade
+				Tooltip: ""
+			}
 		}
 
 		DamageClasses.LifePercentDamage.DisplayName: Life Percent Damage
@@ -77,5 +87,14 @@ Mods: {
 				}
 			}
 		}
+
+		Buffs: {
+			BlinkBladeBuff: {
+				DisplayName: Blink Blade Buff
+				Description: Mods.KillYou3000.Buffs.BlinkBladeBuff.Description
+			}
+		}
+
+		Projectiles.BlinkBladeMinion.DisplayName: Blink Blade Minion
 	}
 }
