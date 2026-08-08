@@ -37,12 +37,17 @@ Mods: {
 			}
 
 			BlinkBlade: {
-				DisplayName: 湮灭棱刃
+				DisplayName: 湮灭棱晶
 				Tooltip:
 					'''
-					[c/FFD700:召唤湮灭棱刃为你战斗]
-					棱刃环绕玩家飞行，每0.67秒传送至目标位置造成范围爆炸伤害
-					目标死亡时立即锁定新目标发动攻击
+					[c/FFD700:召唤湮灭棱晶为你战斗]
+					传送至目标位置造成范围爆炸伤害
+					爆炸范围: {radius} 格
+					[c/FFA500:武器成长系统]
+					每击杀{maxKill}个敌人，增加当前伤害的{rate}%（至少+1）
+					[c/AAAAFF:击杀进度]: {kill}/{maxKill}
+					[c/FFD700:伤害加成]: +{bonus}
+					[c/AAAAAA:Ctrl+左键打开配置界面]
 					'''
 			}
 		}
@@ -115,11 +120,14 @@ Mods: {
 
 		Buffs: {
 			BlinkBladeBuff: {
-				DisplayName: 湮灭棱刃
+				DisplayName: 湮灭棱晶
 				// Description: Mods.KillYou3000.Buffs.BlinkBladeBuff.Description
 			}
 		}
 
-		Projectiles.BlinkBladeMinion.DisplayName: 湮灭棱刃
+		Projectiles: {
+			BlinkBladeMinion.DisplayName: 湮灭棱晶
+			// BlinkBladeExplosion.DisplayName: Blink Blade Explosion
+		}
 	}
 }

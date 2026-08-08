@@ -62,6 +62,6 @@ public class Empress : ModItem
 
     public override void AddRecipes()
     {
-        this.CreateRecipe(1).AddIngredient(75, 5).Register();
+        this.CreateRecipe(1).AddIngredient(ItemID.FallenStar, 5).Register();
     }
 }

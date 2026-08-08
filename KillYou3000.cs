@@ -1,9 +1,12 @@
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.Xna.Framework;
 using Terraria;
+using Terraria.Audio;
 using Terraria.ID;
 using Terraria.ModLoader;
 using KillYou3000.Items.Accessories;
+using KillYou3000.Items.weapon;
 
 namespace KillYou3000
 {
@@ -17,22 +20,73 @@ namespace KillYou3000
 
             switch (messageType)
             {
-                case 1: // 更新饰品数据
+                case 1: // 更新饰品数据（服务器 → 客户端）
                     byte playerId = reader.ReadByte();
-                    int slot = reader.ReadInt32();
+                    byte slot = reader.ReadByte();
                     int killCounter = reader.ReadInt32();
                     int lifeBonus = reader.ReadInt32();
 
                     if (playerId < Main.maxPlayers)
                     {
                         Player player = Main.player[playerId];
-                        if (slot >= 0 && slot < player.armor.Length)
+                        if (slot < player.armor.Length && player.armor[slot]?.ModItem is LifePercentAccessory accessory)
                         {
-                            Item item = player.armor[slot];
-                            if (item.ModItem is LifePercentAccessory accessory)
+                            accessory.killCounter = killCounter;
+                            accessory.lifeBonus = lifeBonus;
+                        }
+                    }
+                    break;
+                case 2: // 生命加成特效（服务器 → 客户端）
+                    byte pId = reader.ReadByte();
+                    int bonusNum = reader.ReadInt32();
+
+                    if (pId < Main.maxPlayers)
+                    {
+                        Player p = Main.player[pId];
+                        if (Main.netMode == NetmodeID.MultiplayerClient && p != null && p.active)
+                        {
+                            CombatText.NewText(p.getRect(), new Color(0, 200, 255), "饰品生命值 +" + bonusNum, true);
+                            SoundEngine.PlaySound(SoundID.Item29 with { Pitch = 0.5f }, p.Center);
+                        }
+                    }
+                    break;
+                case 3: // 同步配置（客户端 → 服务器）
+                    byte cfgPlayer = reader.ReadByte();
+                    byte cfgSlot = reader.ReadByte();
+                    byte itemType = reader.ReadByte(); // 0=LifePercentAccessory, 1=BlinkBlade
+
+                    if (cfgPlayer < Main.maxPlayers)
+                    {
+                        Player cfgP = Main.player[cfgPlayer];
+                        
+                        if (itemType == 0) // LifePercentAccessory
+                        {
+                            double cfgDamage = reader.ReadDouble();
+                            double cfgRevert = reader.ReadDouble();
+                            int cfgMaxKill = reader.ReadInt32();
+
+                            if (cfgSlot < cfgP.armor.Length && cfgP.armor[cfgSlot]?.ModItem is LifePercentAccessory acc)
                             {
-                                accessory.killCounter = killCounter;
-                                accessory.lifeBonus = lifeBonus;
+                                acc.damagePercentage = cfgDamage;
+                                acc.revertPercentage = cfgRevert;
+                                acc.maxKillCount = cfgMaxKill;
+                            }
+                        }
+                        else if (itemType == 1) // BlinkBlade
+                        {
+                            double cfgGrowthPct = reader.ReadDouble();
+                            int cfgMaxKillCount = reader.ReadInt32();
+                            int cfgKillCounter = reader.ReadInt32();
+                            int cfgItemDamage = reader.ReadInt32();
+                            float cfgExplosionRadius = reader.ReadSingle();
+
+                            if (cfgSlot < cfgP.inventory.Length && cfgP.inventory[cfgSlot]?.ModItem is BlinkBlade blade)
+                            {
+                                blade.growthPercentage = cfgGrowthPct;
+                                blade.maxKillCount = cfgMaxKillCount;
+                                blade.killCounter = cfgKillCounter;
+                                blade.Item.damage = cfgItemDamage;
+                                blade.explosionRadius = cfgExplosionRadius;
                             }
                         }
                     }

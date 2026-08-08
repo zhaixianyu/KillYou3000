@@ -12,9 +12,11 @@ public class BlinkBladeMinion : ModProjectile
 {
     // ============ 可调参数 ============
     private const float AttackRange = 1000f;      // 索敌范围：62.5 格（与泰拉棱镜一致）
-    private const float AbandonRange = 1100f;     // 目标离玩家超过此距离则放弃
-    private const int AttackCooldown = 10;        // 攻击冷却：40 tick = 0.67 秒（与泰拉棱镜一致）
-    private const float ExplosionRadius = 130f;   // 爆炸范围半径（约 8 格）
+    private const float AbandonRange = 10f;     // 目标离玩家超过此距离则放弃
+    private const int AttackCooldown = 10;        // 攻击冷却：100 tick ≈ 1.67 秒
+    // 爆炸范围半径由 ai[2] 从武器传入（BlinkBlade.Shoot 写入），默认 130f（约 8 格）
+    private ref float ExplosionRadiusConfig => ref Projectile.ai[2];
+    private float ExplosionRadius => ExplosionRadiusConfig > 0 ? ExplosionRadiusConfig : 130f;
     private const float HoverHeight = 90f;        // 悬浮高度（玩家头顶上方像素）
     private const float HoverSpread = 26f;        // 多把剑之间的水平间距
     // ===================================
@@ -83,8 +85,10 @@ public class BlinkBladeMinion : ModProjectile
         if (Cooldown <= 0f)
         {
             NPC target = (TargetIndex >= 0 && TargetIndex < Main.maxNPCs) ? Main.npc[(int)TargetIndex] : null;
-            bool targetInvalid = target == null || !target.active || target.life <= 0
-                || !target.CanBeChasedBy(this) || target.Distance(player.Center) > AbandonRange;
+            bool targetInvalid = target == null 
+                || target.Distance(player.Center) > AbandonRange 
+                || !target.active || target.life <= 0
+                || !target.CanBeChasedBy(this);
 
             if (targetInvalid)
             {
@@ -174,8 +178,9 @@ public class BlinkBladeMinion : ModProjectile
     // 传送攻击：原位消散 → 瞬移到目标位置 → 爆炸范围伤害 → 进入冷却
     private void TeleportAttack(NPC target)
     {
-        // 原位消散特效
-        SpawnFadeDust(Projectile.Center);
+        // 原位消散特效（仅单机/客户端播放，服务器无 UI）
+        if (Main.netMode != NetmodeID.Server)
+            SpawnFadeDust(Projectile.Center);
 
         // 直接传送到目标位置
         Projectile.Center = target.Center;
@@ -189,47 +194,72 @@ public class BlinkBladeMinion : ModProjectile
         Cooldown = AttackCooldown;
     }
 
-    // 爆炸：所有端播放特效，仅服务器结算伤害（避免多人重复伤害）
+    // 水波扩散特效 + 正式范围伤害：特效所有端播放，伤害由爆炸子弹幕经 vanilla 碰撞管线结算
     private void Explode(Vector2 center)
     {
-        SoundEngine.PlaySound(SoundID.Item14, center);
+        // ===== 视觉特效：仅单机/客户端播放（服务器无 UI，播放无效）=====
+        // 注意：多人下客户端与服务器各自独立模拟召唤物 AI，客户端会自行播放本特效，
+        // 伤害则由服务器生成的爆炸弹幕裁决后再同步回客户端。
+        if (Main.netMode != NetmodeID.Server)
+        {
+            // 水声（替代爆炸声）
+            SoundEngine.PlaySound(SoundID.Splash, center);
 
-        for (int i = 0; i < 35; i++)
-        {
-            Vector2 dir = Vector2.UnitX.RotatedByRandom(MathHelper.TwoPi);
-            Dust d = Dust.NewDustPerfect(center + dir * Main.rand.NextFloat(0f, ExplosionRadius * 0.4f),
-                DustID.RainbowRod, dir * Main.rand.NextFloat(2f, 10f), 0,
-                Main.hslToRgb(Main.rand.NextFloat(), 1f, 0.6f), 1.6f);
-            d.noGravity = true;
-        }
-        for (int i = 0; i < 20; i++)
-        {
-            Vector2 dir = Vector2.UnitX.RotatedByRandom(MathHelper.TwoPi);
-            Dust d = Dust.NewDustPerfect(center, DustID.Torch, dir * Main.rand.NextFloat(1f, 7f), 0, default, 1.4f);
-            d.noGravity = true;
-        }
+            // 从配置半径计算缩放比例（基准 130f ≈ 8格）
+            float radiusScale = ExplosionRadius / 130f;
 
-        if (Main.netMode != NetmodeID.MultiplayerClient)
-        {
-            foreach (NPC npc in Main.npc)
+            // ===== 水波涟漪：三层同心半透明水环，从内向外扩散 =====
+            for (int ring = 0; ring < 3; ring++)
             {
-                if (!npc.active || npc.friendly || !npc.CanBeChasedBy(this))
-                    continue;
-                if (npc.Distance(center) <= ExplosionRadius)
+                float startRadius = (16f + ring * 28f) * radiusScale;      // 每圈初始半径
+                int ringCount = 22 + ring * 6;             // 每圈尘埃数（外圈更密）
+                int ringAlpha = 60 + ring * 20;            // 半透明程度（外圈更透）
+                float ringScale = (1.1f + ring * 0.15f) * radiusScale;
+                for (int i = 0; i < ringCount; i++)
                 {
-                    int hitDirection = npc.Center.X > center.X ? 1 : -1;
-                    int damage = Projectile.originalDamage > 0 ? Projectile.originalDamage : Projectile.damage;
-                    NPC.HitInfo hitInfo = new NPC.HitInfo
-                    {
-                        Damage = damage,
-                        Knockback = Projectile.knockBack,
-                        HitDirection = hitDirection,
-                        Crit = false,
-                        DamageType = DamageClass.Summon,
-                    };
-                    npc.StrikeNPC(hitInfo);
+                    float angle = MathHelper.TwoPi * i / ringCount;
+                    Vector2 dir = new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle));
+                    Dust d = Dust.NewDustPerfect(
+                        center + dir * startRadius,
+                        DustID.Water,
+                        dir * (2f + ring * 1.6f) * radiusScale,   // 径向向外扩散，形成水波扩散感
+                        ringAlpha,                  // alpha 半透明
+                        new Color(140, 210, 255, 128),
+                        ringScale);
+                    d.noGravity = true;
                 }
             }
+
+            // 中心水花：半透明水滴向四周溅开
+            for (int i = 0; i < 12; i++)
+            {
+                Vector2 dir = Vector2.UnitX.RotatedByRandom(MathHelper.TwoPi);
+                Dust d = Dust.NewDustPerfect(
+                    center + dir * Main.rand.NextFloat(0f, 18f * radiusScale),
+                    DustID.Water,
+                    dir * Main.rand.NextFloat(2f, 6f) * radiusScale,
+                    100,
+                    new Color(180, 230, 255, 140),
+                    1.3f * radiusScale);
+                d.noGravity = true;
+            }
+        }
+
+        // ===== 范围伤害：生成爆炸弹幕，手动遍历 NPC 施加伤害 =====
+        // BlinkBladeExplosion 在 AI 中手动遍历范围内 NPC 并调用 StrikeNPC，
+        // 不依赖 vanilla 爆炸/碰撞管线，确保不伤害玩家。
+        // 单机/服务器生成（NewProjectile 自动同步到客户端），客户端不生成，避免多人重复结算。
+        if (Main.netMode != NetmodeID.MultiplayerClient)
+        {
+            Projectile.NewProjectileDirect(
+                Projectile.GetSource_FromThis(),
+                center,
+                Vector2.Zero,
+                ModContent.ProjectileType<BlinkBladeExplosion>(),
+                Projectile.damage,
+                Projectile.knockBack,
+                Projectile.owner,
+                ai0: ExplosionRadius);
         }
     }
 

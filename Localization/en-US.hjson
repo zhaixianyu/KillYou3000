@@ -18,7 +18,17 @@ Mods: {
 
 			BlinkBlade: {
 				DisplayName: Blink Blade
-				Tooltip: ""
+				Tooltip:
+					'''
+					[c/FFD700:Summons a Blink Blade to fight for you]
+					Teleports to target and explodes dealing area damage
+					Explosion radius: {radius} tiles
+					[c/FFA500:Weapon Growth System]
+					Every {maxKill} kills, increases current damage by {rate}% (min +1)
+					[c/AAAAFF:Kill Progress]: {kill}/{maxKill}
+					[c/FFD700:Damage Bonus]: +{bonus}
+					[c/AAAAAA:Ctrl+LMB to open config]
+					'''
 			}
 		}
 
@@ -95,6 +105,9 @@ Mods: {
 			}
 		}
 
-		Projectiles.BlinkBladeMinion.DisplayName: Blink Blade Minion
+		Projectiles: {
+			BlinkBladeMinion.DisplayName: Blink Blade Minion
+			BlinkBladeExplosion.DisplayName: Blink Blade Explosion
+		}
 	}
 }

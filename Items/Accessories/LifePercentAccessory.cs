@@ -7,17 +7,18 @@ using Terraria;
 using Terraria.Audio;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
+using Terraria.GameInput;
 using Terraria.ID;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 using Terraria.UI;
+using KillYou3000.Common.Config;
 using KillYou3000.Common.ModSystems;
 using KillYou3000.MyInterface.MyItem;
 using KillYou3000.Players;
-
 namespace KillYou3000.Items.Accessories
 {
-    public class LifePercentAccessory : ModItem, IMiddleClickToInteractWithItems
+    public class LifePercentAccessory : ModItem, IMiddleClickToInteractWithItems, IConfigurableItem
     {
         // 饰品属性
         public int killCounter;
@@ -105,6 +106,79 @@ namespace KillYou3000.Items.Accessories
         public override void AddRecipes() {
             CreateRecipe().AddIngredient(ItemID.LifeCrystal, 5).Register();
         }
+
+        #region IConfigurableItem 实现
+
+        public string ConfigTitle => "生命百分比饰品配置";
+
+        public List<ConfigField> GetConfigFields()
+        {
+            return new List<ConfigField>
+            {
+                new ConfigField
+                {
+                    Label = "伤害百分比",
+                    Key = "damagePercentage",
+                    FieldType = ConfigFieldType.Double,
+                    Value = damagePercentage,
+                    OnChange = v => damagePercentage = (double)v
+                },
+                new ConfigField
+                {
+                    Label = "恢复百分比",
+                    Key = "revertPercentage",
+                    FieldType = ConfigFieldType.Double,
+                    Value = revertPercentage,
+                    OnChange = v => revertPercentage = (double)v
+                },
+                new ConfigField
+                {
+                    Label = "最大击杀数",
+                    Key = "maxKillCount",
+                    FieldType = ConfigFieldType.Int,
+                    Value = maxKillCount,
+                    OnChange = v => maxKillCount = (int)v
+                }
+            };
+        }
+
+        public void OnConfigChanged()
+        {
+            // 多人游戏：同步配置到服务器
+            if (Main.netMode == NetmodeID.MultiplayerClient)
+            {
+                SyncConfigToServer();
+            }
+        }
+
+        private void SyncConfigToServer()
+        {
+            // 找到该饰品在玩家装备栏中的槽位
+            Player player = Main.player[Main.myPlayer];
+            int slot = -1;
+            for (int i = 0; i < player.armor.Length; i++)
+            {
+                if (player.armor[i]?.ModItem == this)
+                {
+                    slot = i;
+                    break;
+                }
+            }
+            if (slot < 0) return;
+
+            // 发送配置同步包（消息类型 3）
+            ModPacket packet = Mod.GetPacket();
+            packet.Write((byte)3); // 消息类型：同步配置
+            packet.Write((byte)player.whoAmI);
+            packet.Write((byte)slot);
+            packet.Write((byte)0); // 物品类型标识：0=LifePercentAccessory
+            packet.Write(damagePercentage);
+            packet.Write(revertPercentage);
+            packet.Write(maxKillCount);
+            packet.Send();
+        }
+
+        #endregion
     }
 
     public class LifePercentUISystem : ModSystem
@@ -141,7 +215,7 @@ namespace KillYou3000.Items.Accessories
             }
         }
 
-        public static void ShowUI(LifePercentAccessory item) {
+        public static void ShowUI(IConfigurableItem item) {
             _configUI.SetItem(item);
             _configInterface.SetState(_configUI);
             Main.playerInventory = false;
@@ -150,49 +224,49 @@ namespace KillYou3000.Items.Accessories
 
         public static void HideUI() {
             _configInterface.SetState(null);
-            Main.playerInventory = true;
+
+            // 修复"保存并关闭后游戏键盘输入无效"：补回缺失的输入状态恢复步骤
+            // 1) 所有输入框失焦（同时恢复它们激活时设置的 Main.blockInput / mouseInterface）
+            _configUI.DeactivateAllInputs();
+            // 2) 兜底恢复所有被 UI 修改的全局输入状态
+            Main.blockInput = false;
+            Main.player[Main.myPlayer].mouseInterface = false;
+            PlayerInput.WritingText = false;
+            Main.instance.HandleIME();
+            // 3) 关闭 UI 后不再强制打开背包：原代码 playerInventory=true 会直接打开背包界面，
+            //    游戏按键会被背包界面拦截，表现为"键盘输入无效"；若玩家需要背包，按 B 即可打开
+            Main.playerInventory = false;
         }
     }
 
     public class LifePercentConfigUi : UIState
     {
         private UIPanel _configPanel;
-        private UiTextInput _damageInput;
-        private UiTextInput _revertInput;
-        private UiTextInput _maxKillInput;
-        public LifePercentAccessory CurrentItem { get; set; }
+        private UIText _titleText;
+        private List<UiTextInput> _inputFields = new List<UiTextInput>();
+        private List<ConfigField> _configFields = new List<ConfigField>();
+        public IConfigurableItem CurrentItem { get; set; }
 
         public override void OnInitialize() {
             _configPanel = new UIPanel();
             _configPanel.Width.Set(400, 0);
-            _configPanel.Height.Set(250, 0);
+            _configPanel.Height.Set(300, 0);
             _configPanel.HAlign = _configPanel.VAlign = 0.5f;
             _configPanel.BackgroundColor = new Color(33, 43, 79) * 0.8f;
             Append(_configPanel);
 
             // 标题
-            var title = new UIText("饰品配置", 0.8f);
-            title.HAlign = 0.5f;
-            title.Top.Set(10, 0);
-            _configPanel.Append(title);
-
-            // 配置行
-            CreateConfigRow("伤害百分比:", 50, out _damageInput, value => {
-                if (double.TryParse(value, out double val)) CurrentItem.damagePercentage = val;
-            });
-            CreateConfigRow("恢复百分比:", 90, out _revertInput, value => {
-                if (double.TryParse(value, out double val)) CurrentItem.revertPercentage = val;
-            });
-            CreateConfigRow("最大击杀数:", 130, out _maxKillInput, value => {
-                if (int.TryParse(value, out int val)) CurrentItem.maxKillCount = val;
-            });
+            _titleText = new UIText("配置", 0.8f);
+            _titleText.HAlign = 0.5f;
+            _titleText.Top.Set(10, 0);
+            _configPanel.Append(_titleText);
 
             // 关闭按钮
             var closeButton = new UIText("保存并关闭");
             closeButton.HAlign = 0.5f;
-            closeButton.Top.Set(180, 0);
+            closeButton.Top.Set(250, 0);
             closeButton.OnLeftClick += (_, __) => {
-                LifePercentUISystem.HideUI();
+               LifePercentUISystem.HideUI();
                 SoundEngine.PlaySound(SoundID.MenuClose);
             };
             _configPanel.Append(closeButton);
@@ -245,11 +319,56 @@ namespace KillYou3000.Items.Accessories
             _configPanel.Append(downButton);
         }
 
-        public void SetItem(LifePercentAccessory item) {
+        public void SetItem(IConfigurableItem item) {
             CurrentItem = item;
-            _damageInput.SetText(item.damagePercentage.ToString());
-            _revertInput.SetText(item.revertPercentage.ToString());
-            _maxKillInput.SetText(item.maxKillCount.ToString());
+            _titleText.SetText(item.ConfigTitle);
+
+            // 清除旧的输入框
+            foreach (var input in _inputFields)
+            {
+                input.Remove();
+            }
+            _inputFields.Clear();
+            _configFields.Clear();
+
+            // 动态生成配置行
+            var fields = item.GetConfigFields();
+            float topOffset = 50;
+            foreach (var field in fields)
+            {
+                _configFields.Add(field);
+                CreateConfigRow(field.Label + ":", topOffset, out UiTextInput input, value => {
+                    object parsedValue = null;
+                    switch (field.FieldType)
+                    {
+                        case ConfigFieldType.Double:
+                            if (double.TryParse(value, out double dVal)) parsedValue = dVal;
+                            break;
+                        case ConfigFieldType.Int:
+                            if (int.TryParse(value, out int iVal)) parsedValue = iVal;
+                            break;
+                        case ConfigFieldType.Bool:
+                            if (bool.TryParse(value, out bool bVal)) parsedValue = bVal;
+                            break;
+                    }
+                    if (parsedValue != null)
+                    {
+                        field.OnChange?.Invoke(parsedValue);
+                        item.OnConfigChanged();
+                    }
+                });
+                input.SetText(field.Value?.ToString() ?? "");
+                _inputFields.Add(input);
+                topOffset += 40;
+            }
+        }
+
+        /// <summary>失焦所有输入框并恢复它们修改的全局输入状态（关闭 UI 时调用）。</summary>
+        public void DeactivateAllInputs() {
+            foreach (var input in _inputFields)
+            {
+                input?.LoseFocus();
+            }
         }
     }
 
@@ -278,6 +397,15 @@ namespace KillYou3000.Items.Accessories
                 Text = text;
                 OnTextChange?.Invoke(text);
             }
+        }
+
+        /// <summary>失焦并恢复激活期间设置的全局输入状态（Main.blockInput / mouseInterface），
+        /// 否则输入框关闭后游戏键盘/鼠标输入会被永久拦截。</summary>
+        public void LoseFocus() {
+            _isActive = false;
+            _cursorTimer = 0;
+            Main.blockInput = false;
+            Main.player[Main.myPlayer].mouseInterface = false;
         }
 
         public override void Update(GameTime gameTime) {
@@ -311,6 +439,10 @@ namespace KillYou3000.Items.Accessories
             if (Main.keyState.IsKeyDown(Keys.OemPeriod) && !Main.oldKeyState.IsKeyDown(Keys.OemPeriod)) {
                 SetText(Text + ".");
             }
+            // 处理负数
+            if (Main.keyState.IsKeyDown(Keys.OemMinus) && !Main.oldKeyState.IsKeyDown(Keys.OemMinus)) {
+                SetText(Text + "-");
+            }
 
             // 处理数字键输入
             for (int i = 0; i <= 9; i++) {
@@ -331,7 +463,7 @@ namespace KillYou3000.Items.Accessories
             // 处理回车键和ESC键失去焦点
             if (Main.keyState.IsKeyDown(Keys.Enter) && !Main.oldKeyState.IsKeyDown(Keys.Enter) ||
                 Main.keyState.IsKeyDown(Keys.Escape) && !Main.oldKeyState.IsKeyDown(Keys.Escape)) {
-                _isActive = false;
+                LoseFocus();
             }
         }
 
@@ -355,9 +487,9 @@ namespace KillYou3000.Items.Accessories
                     }
                 }
 
-                // 检测失去焦点
+                // 检测失去焦点（点击输入框外部）
                 if (!IsMouseHovering && Main.mouseLeft) {
-                    _isActive = false;
+                    LoseFocus();
                 }
             }
         }
